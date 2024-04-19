@@ -135,4 +135,16 @@ describe(`create-selectors.js`, () => {
         });
         expect(selectors.selectState(state, {})).toEqual(state.rootOne);
     });
+    describe(`simple properties`, () => {
+        it(`creates a selector for a simple property`, () => {
+            const selectors = createSelectors({
+                simpleString: {
+                    _export: true
+                }
+            });
+            expect(selectors.selectSimpleString(state, {})).toEqual(
+                state.simpleString
+            );
+        });
+    });
 });
