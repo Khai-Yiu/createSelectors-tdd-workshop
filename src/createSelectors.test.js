@@ -129,4 +129,10 @@ describe(`create-selectors.js`, () => {
         const selectors = createSelectors({});
         expect(selectors.selectState(state, {})).toEqual(state);
     });
+    it(`uses a given selector instead of creating a new one`, () => {
+        const selectors = createSelectors({
+            _selector: (state, props) => state && state.rootOne
+        });
+        expect(selectors.selectState(state, {})).toEqual(state.rootOne);
+    });
 });
