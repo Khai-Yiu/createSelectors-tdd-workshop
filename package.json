@@ -1,0 +1,27 @@
+{
+  "name": "create-template",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "test",
+    "test:watch": "jest --watch",
+    "format": "prettier --write ."
+  },
+  "bin": {
+    "create-template": "./index.js"
+  },
+  "author": "Khai-Yiu",
+  "license": "ISC",
+  "devDependencies": {
+    "@babel/core": "^7.23.9",
+    "@babel/preset-env": "^7.23.9",
+    "babel-jest": "^29.7.0",
+    "jest": "^29.7.0",
+    "prettier": "3.2.5"
+  },
+  "dependencies": {
+    "inquirer": "^9.2.15"
+  }
+}
