@@ -154,5 +154,14 @@ describe(`create-selectors.js`, () => {
             });
             expect(selectors.selectSimpleBoolean(state, {})).toEqual(false);
         });
+        it(`returns a default value for a simple boolean property`, () => {
+            const selectors = createSelectors({
+                simpleBoolean: {
+                    _default: true
+                }
+            });
+            const { simpleBoolean, ...restState } = state;
+            expect(selectors.selectSimpleBoolean(restState, {})).toEqual(true);
+        });
     });
 });
