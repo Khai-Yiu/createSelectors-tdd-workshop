@@ -146,5 +146,13 @@ describe(`create-selectors.js`, () => {
                 state.simpleString
             );
         });
+        it(`returns a simple boolean property`, () => {
+            const selectors = createSelectors({
+                simpleBoolean: {
+                    _default: true
+                }
+            });
+            expect(selectors.selectSimpleBoolean(state, {})).toEqual(false);
+        });
     });
 });
