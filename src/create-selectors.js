@@ -5,7 +5,11 @@ function createSelectorName(selectorName) {
 }
 
 function getDefaultValueForType(type) {
-    return [];
+    if (type === 'list') {
+        return [];
+    } else if (type === 'index') {
+        return {};
+    }
 }
 
 function getDefaultForPropertySelector(selectorSpecification) {

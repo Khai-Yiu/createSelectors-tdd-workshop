@@ -253,5 +253,94 @@ describe(`create-selectors.js`, () => {
             });
             expect(selectors.selectAnIndexOfObjects({}, {})).toEqual({});
         });
+        it(`selects an entry from an index`, () => {
+            const state = {
+                someRoot: {
+                    test: {
+                        blah: true
+                    },
+                    mapIndex: {
+                        '5ae40702-2d64-4ab6-b755-646bcf79a286': {
+                            uuid: '5ae40702-2d64-4ab6-b755-646bcf79a286',
+                            name: 'one',
+                            nodeIndex: {
+                                '883ae08c-562f-4182-a4ee-e62c3325e75a': {
+                                    uuid: '883ae08c-562f-4182-a4ee-e62c3325e75a',
+                                    name: 'node1.1'
+                                },
+                                'da8d21cd-8b34-40a2-bf17-551df61d07fc': {
+                                    uuid: '7745ac11-f423-41b3-a2ce-4bf95e65e011',
+                                    name: 'node1.2'
+                                }
+                            }
+                        },
+                        'ea9cb69e-0993-40ad-897d-41fae23f2a35': {
+                            uuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35',
+                            name: 'two',
+                            nodeIndex: {
+                                'b8bba21b-5416-42e5-81bd-e73bb67f3b50': {
+                                    uuid: 'b8bba21b-5416-42e5-81bd-e73bb67f3b50',
+                                    name: 'node2.1'
+                                },
+                                '5f391310-fb9c-44bc-a3db-e1572ac340b9': {
+                                    uuid: '5f391310-fb9c-44bc-a3db-e1572ac340b9',
+                                    name: 'node2.2'
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+            const selectors = createSelectors({
+                // _export: true,
+                someRoot: {
+                    _export: true,
+                    test: {
+                        _export: true
+                    },
+                    mapIndex: {
+                        _type: 'index',
+                        _export: true,
+                        map: {
+                            _export: true,
+                            _key: 'mapUuid',
+                            nodeIndex: {
+                                _type: 'index',
+                                _export: true,
+                                node: {
+                                    _export: true,
+                                    _key: 'nodeUuid'
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            expect(selectors.selectState(state, {})).toEqual(state);
+            expect(selectors.selectSomeRoot(state, {})).toEqual(state.someRoot);
+            expect(selectors.selectTest(state, {})).toEqual(
+                state.someRoot.test
+            );
+            expect(selectors.selectMapIndex(state, {})).toEqual(
+                state.someRoot.mapIndex
+            );
+            expect(
+                selectors.selectMap(state, {
+                    mapUuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35'
+                })
+            ).toEqual(
+                state.someRoot.mapIndex['ea9cb69e-0993-40ad-897d-41fae23f2a35']
+            );
+            expect(
+                selectors.selectNode(state, {
+                    mapUuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35',
+                    nodeUuid: '5f391310-fb9c-44bc-a3db-e1572ac340b9'
+                })
+            ).toEqual(
+                // eslint-disable-next-line
+                state.someRoot.mapIndex['ea9cb69e-0993-40ad-897d-41fae23f2a35']
+                    .nodeIndex['5f391310-fb9c-44bc-a3db-e1572ac340b9']
+            );
+        });
     });
 });
