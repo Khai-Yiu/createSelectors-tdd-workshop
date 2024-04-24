@@ -4,6 +4,10 @@ function createSelectorName(selectorName) {
     return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(1)}`;
 }
 
+function getDefaultValueForType(type) {
+    return [];
+}
+
 function createSelectors(selectorSpecification) {
     const selectors = {
         selectState: selectorSpecification._selector ?? R.identity
@@ -13,10 +17,15 @@ function createSelectors(selectorSpecification) {
         if (value['_export'] !== false) {
             selectors[createSelectorName(key)] = (state) => {
                 if (
-                    !state.hasOwnProperty(key) &&
-                    value.hasOwnProperty('_default')
+                    !Object.hasOwn(state, key) &&
+                    Object.hasOwn(value, '_default')
                 ) {
                     return value['_default'];
+                } else if (
+                    !Object.hasOwn(state, key) &&
+                    Object.hasOwn(value, '_type')
+                ) {
+                    return getDefaultValueForType(value['_type']);
                 }
 
                 return selectors.selectState(state)[key];
