@@ -175,5 +175,16 @@ describe(`create-selectors.js`, () => {
                 'default value'
             );
         });
+        it(`creates a selector for a simple property with a different root`, () => {
+            const selectors = createSelectors({
+                _selector: (state, props) => state && state.rootOne,
+                simpleString: {
+                    _export: true
+                }
+            });
+            expect(selectors.selectSimpleString(state, {})).toEqual(
+                state.rootOne.simpleString
+            );
+        });
     });
 });
