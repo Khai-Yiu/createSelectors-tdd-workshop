@@ -187,4 +187,16 @@ describe(`create-selectors.js`, () => {
             );
         });
     });
+    describe(`list selection`, () => {
+        it(`creates a selector for a simple list property`, () => {
+            const selectors = createSelectors({
+                aListOfStrings: {
+                    _export: true
+                }
+            });
+            expect(selectors.selectAListOfStrings(state, {})).toEqual(
+                state.aListOfStrings
+            );
+        });
+    });
 });
