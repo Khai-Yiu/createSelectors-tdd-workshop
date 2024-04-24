@@ -1,4 +1,4 @@
-import R from 'ramda';
+import R, { prop } from 'ramda';
 
 function createSelectorName(selectorName) {
     return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(1)}`;
@@ -20,26 +20,51 @@ function getDefaultForPropertySelector(selectorSpecification) {
     }
 }
 
+function checkIsPlainObject(value) {
+    return (
+        value !== null &&
+        typeof value === 'object' &&
+        Object.getPrototypeOf(value) === Object.prototype
+    );
+}
+
+const reservedKeywords = ['_default', '_export', 'type'];
+
 function createSelectors(selectorSpecification) {
     const selectors = {
         selectState: selectorSpecification._selector ?? R.identity
     };
 
     return Object.entries(selectorSpecification).reduce(
-        (accumulator, [propertyName, propertySelectorSpec]) => {
-            if (propertySelectorSpec['_export'] !== false) {
+        (selectors, [propertyName, propertyValue]) => {
+            if (reservedKeywords.includes(propertyName)) {
+                return selectors;
+            }
+
+            if (
+                checkIsPlainObject(propertyValue) &&
+                propertyValue._export !== false
+            ) {
+                const selectorName = createSelectorName(propertyName);
+                const { selectState, ...remainingSelectors } = createSelectors({
+                    ...propertyValue,
+                    _selector: (state) => state[propertyName]
+                });
+
                 return {
                     ...selectors,
-                    [createSelectorName(propertyName)]: (state) =>
-                        Object.hasOwn(state, propertyName)
+                    [selectorName]: (state) => {
+                        return Object.hasOwn(state, propertyName)
                             ? selectors.selectState(state)[propertyName]
                             : getDefaultForPropertySelector(
-                                  propertySelectorSpec
-                              )
+                                  selectorSpecification[propertyName]
+                              );
+                    },
+                    ...remainingSelectors
                 };
             }
 
-            return accumulator;
+            return selectors;
         },
         selectors
     );
