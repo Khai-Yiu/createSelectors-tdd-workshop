@@ -163,5 +163,17 @@ describe(`create-selectors.js`, () => {
             const { simpleBoolean, ...restState } = state;
             expect(selectors.selectSimpleBoolean(restState, {})).toEqual(true);
         });
+        it(`returns a default value for a simple property`, () => {
+            const selectors = createSelectors({
+                simpleString: {
+                    _default: 'default value',
+                    _export: true
+                }
+            });
+            const { simpleString, ...restState } = state;
+            expect(selectors.selectSimpleString(restState, {})).toEqual(
+                'default value'
+            );
+        });
     });
 });
