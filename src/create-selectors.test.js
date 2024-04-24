@@ -244,5 +244,14 @@ describe(`create-selectors.js`, () => {
                 state.anIndexOfObjects
             );
         });
+        it(`returns an empty index if the state does not include the index`, () => {
+            const selectors = createSelectors({
+                anIndexOfObjects: {
+                    _type: 'index',
+                    _export: true
+                }
+            });
+            expect(selectors.selectAnIndexOfObjects({}, {})).toEqual({});
+        });
     });
 });
