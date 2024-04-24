@@ -8,30 +8,39 @@ function getDefaultValueForType(type) {
     return [];
 }
 
+function getDefaultForPropertySelector(selectorSpecification) {
+    if (Object.hasOwn(selectorSpecification, '_default')) {
+        return selectorSpecification['_default'];
+    } else if (Object.hasOwn(selectorSpecification, '_type')) {
+        return getDefaultValueForType(selectorSpecification['_type']);
+    }
+}
+
 function createSelectors(selectorSpecification) {
     const selectors = {
         selectState: selectorSpecification._selector ?? R.identity
     };
 
-    for (const [key, value] of Object.entries(selectorSpecification)) {
-        if (value['_export'] !== false) {
-            selectors[createSelectorName(key)] = (state) => {
-                if (
-                    !Object.hasOwn(state, key) &&
-                    Object.hasOwn(value, '_default')
-                ) {
-                    return value['_default'];
-                } else if (
-                    !Object.hasOwn(state, key) &&
-                    Object.hasOwn(value, '_type')
-                ) {
-                    return getDefaultValueForType(value['_type']);
-                }
+    Object.entries(selectorSpecification).reduce(
+        (accumulator, [propertyName, propertySelectorSpec]) => {
+            if (propertySelectorSpec['_export'] !== false) {
+                return {
+                    ...selectors,
+                    [createSelectorName(propertyName)]: (selectors[
+                        createSelectorName(propertyName)
+                    ] = (state) =>
+                        Object.hasOwn(state, propertyName)
+                            ? selectors.selectState(state)[propertyName]
+                            : getDefaultForPropertySelector(
+                                  propertySelectorSpec
+                              ))
+                };
+            }
 
-                return selectors.selectState(state)[key];
-            };
-        }
-    }
+            return accumulator;
+        },
+        selectors
+    );
 
     return selectors;
 }
