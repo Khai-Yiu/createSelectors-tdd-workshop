@@ -19,7 +19,7 @@ function createSelectors(selectorSpecification) {
                     return value['_default'];
                 }
 
-                return state[key];
+                return selectors.selectState(state)[key];
             };
         }
     }
