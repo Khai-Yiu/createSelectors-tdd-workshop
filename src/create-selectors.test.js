@@ -209,5 +209,19 @@ describe(`create-selectors.js`, () => {
             const { aListOfStrings, ...restState } = state;
             expect(selectors.selectAListOfStrings(restState, {})).toEqual([]);
         });
+        it(`returns the default list when the selected list does not exist`, () => {
+            const selectors = createSelectors({
+                aListOfStrings: {
+                    _type: 'list',
+                    _default: ['default value'],
+                    _export: true
+                }
+            });
+            // eslint-disable-next-line
+            const { aListOfStrings, ...restState } = state;
+            expect(selectors.selectAListOfStrings(restState, {})).toEqual([
+                'default value'
+            ]);
+        });
     });
 });
