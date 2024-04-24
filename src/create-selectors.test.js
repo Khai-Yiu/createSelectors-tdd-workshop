@@ -205,7 +205,6 @@ describe(`create-selectors.js`, () => {
                     _export: true
                 }
             });
-            // eslint-disable-next-line
             const { aListOfStrings, ...restState } = state;
             expect(selectors.selectAListOfStrings(restState, {})).toEqual([]);
         });
@@ -217,11 +216,21 @@ describe(`create-selectors.js`, () => {
                     _export: true
                 }
             });
-            // eslint-disable-next-line
             const { aListOfStrings, ...restState } = state;
             expect(selectors.selectAListOfStrings(restState, {})).toEqual([
                 'default value'
             ]);
+        });
+        it(`creates a selector for a list property with a different root`, () => {
+            const selectors = createSelectors({
+                _selector: (state, props) => state && state.rootOne,
+                aListOfStrings: {
+                    _export: true
+                }
+            });
+            expect(selectors.selectAListOfStrings(state, {})).toEqual(
+                state.rootOne.aListOfStrings
+            );
         });
     });
 });

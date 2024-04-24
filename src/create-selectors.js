@@ -21,19 +21,17 @@ function createSelectors(selectorSpecification) {
         selectState: selectorSpecification._selector ?? R.identity
     };
 
-    Object.entries(selectorSpecification).reduce(
+    return Object.entries(selectorSpecification).reduce(
         (accumulator, [propertyName, propertySelectorSpec]) => {
             if (propertySelectorSpec['_export'] !== false) {
                 return {
                     ...selectors,
-                    [createSelectorName(propertyName)]: (selectors[
-                        createSelectorName(propertyName)
-                    ] = (state) =>
+                    [createSelectorName(propertyName)]: (state) =>
                         Object.hasOwn(state, propertyName)
                             ? selectors.selectState(state)[propertyName]
                             : getDefaultForPropertySelector(
                                   propertySelectorSpec
-                              ))
+                              )
                 };
             }
 
@@ -41,8 +39,6 @@ function createSelectors(selectorSpecification) {
         },
         selectors
     );
-
-    return selectors;
 }
 
 export default createSelectors;
