@@ -36,35 +36,36 @@ function createSelectors(selectorSpecification) {
     };
 
     return Object.entries(selectorSpecification).reduce(
-        (selectors, [propertyName, propertyValue]) => {
+        (accSelectors, [propertyName, propertySpec]) => {
             if (reservedKeywords.includes(propertyName)) {
-                return selectors;
+                return accSelectors;
             }
 
             if (
-                checkIsPlainObject(propertyValue) &&
-                propertyValue._export !== false
+                checkIsPlainObject(propertySpec) &&
+                propertySpec._export !== false
             ) {
                 const selectorName = createSelectorName(propertyName);
                 const selectorFunction = (_state) => {
-                    const state = selectors.selectState(_state);
+                    const state = accSelectors.selectState(_state);
 
-                    return Object.hasOwn(state, propertyName)
+                    return Object.hasOwn(state, propertyName) &&
+                        state[propertyName] !== undefined
                         ? state[propertyName]
-                        : getDefaultForPropertySelector(propertyValue);
+                        : getDefaultForPropertySelector(propertySpec);
                 };
 
                 return {
-                    ...selectors,
+                    ...accSelectors,
                     [selectorName]: selectorFunction,
                     ...createSelectors({
-                        ...propertyValue,
+                        ...propertySpec,
                         _selector: selectorFunction
                     })
                 };
             }
 
-            return selectors;
+            return accSelectors;
         },
         selectors
     );
