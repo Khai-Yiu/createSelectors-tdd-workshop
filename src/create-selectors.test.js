@@ -424,4 +424,28 @@ describe(`create-selectors.js`, () => {
             });
         });
     });
+    describe(`error handling`, () => {
+        describe(`simple properties`, () => {
+            it(`throws an error if a selector name is already in use`, () => {
+                const selectors = () =>
+                    createSelectors({
+                        rootOne: {
+                            simpleString: {
+                                _export: true
+                            },
+                            level1: {
+                                simpleString: {
+                                    _export: true
+                                }
+                            }
+                        }
+                    });
+                return expect(selectors).toThrow(
+                    Error(
+                        `Invariant failed: The selector names [selectSimpleString] are already in use. Please use an alternative name using '_name' or '_names'`
+                    )
+                );
+            });
+        });
+    });
 });
