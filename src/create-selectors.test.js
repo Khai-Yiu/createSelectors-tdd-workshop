@@ -392,6 +392,20 @@ describe(`create-selectors.js`, () => {
                     ).toEqual(true);
                 });
             });
+            it(`selects a nested simple property on level 2`, () => {
+                const selectors = createSelectors({
+                    rootOne: {
+                        level2: {
+                            simpleString: {
+                                _export: true
+                            }
+                        }
+                    }
+                });
+                expect(selectors.selectSimpleString(state, {})).toEqual(
+                    state.rootOne.level2.simpleString
+                );
+            });
         });
     });
 });
