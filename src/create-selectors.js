@@ -1,7 +1,21 @@
-import R, { prop } from 'ramda';
+import R from 'ramda';
 
-function createSelectorName(selectorName) {
-    return `select${selectorName.charAt(0).toUpperCase()}${selectorName.slice(1)}`;
+function createSelectorName(propertyName, propertySpec, prevSelectorNames) {
+    const _createSelectorName = (propertyName) =>
+        `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
+    const selectorName = _createSelectorName(propertyName);
+
+    if (prevSelectorNames.includes(selectorName)) {
+        if (Object.hasOwn(propertySpec, '_alternative')) {
+            return _createSelectorName(propertySpec['_alternative']);
+        }
+
+        throw new Error(
+            `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
+        );
+    }
+
+    return selectorName;
 }
 
 function getDefaultValueForType(type) {
@@ -28,9 +42,9 @@ function checkIsPlainObject(value) {
     );
 }
 
-const reservedKeywords = ['_default', '_export', 'type'];
+const reservedKeywords = ['_default', '_export', 'type', '_alternative'];
 
-function createSelectors(selectorSpecification) {
+function _createSelectors(selectorSpecification, prevSelectorNames) {
     const selectors = {
         selectState: selectorSpecification._selector ?? R.identity
     };
@@ -45,7 +59,12 @@ function createSelectors(selectorSpecification) {
                 checkIsPlainObject(propertySpec) &&
                 propertySpec._export !== false
             ) {
-                const selectorName = createSelectorName(propertyName);
+                const selectorName = createSelectorName(
+                    propertyName,
+                    propertySpec,
+                    prevSelectorNames
+                );
+
                 const selectorFunction = (_state) => {
                     const state = accSelectors.selectState(_state);
 
@@ -55,13 +74,18 @@ function createSelectors(selectorSpecification) {
                         : getDefaultForPropertySelector(propertySpec);
                 };
 
+                accSelectors[selectorName] = selectorFunction;
+                prevSelectorNames.push(selectorName);
+
                 return {
                     ...accSelectors,
-                    [selectorName]: selectorFunction,
-                    ...createSelectors({
-                        ...propertySpec,
-                        _selector: selectorFunction
-                    })
+                    ..._createSelectors(
+                        {
+                            ...propertySpec,
+                            _selector: selectorFunction
+                        },
+                        prevSelectorNames
+                    )
                 };
             }
 
@@ -69,6 +93,10 @@ function createSelectors(selectorSpecification) {
         },
         selectors
     );
+}
+
+function createSelectors(selectorSpecification) {
+    return _createSelectors(selectorSpecification, []);
 }
 
 export default createSelectors;
