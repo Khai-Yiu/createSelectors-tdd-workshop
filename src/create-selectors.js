@@ -46,21 +46,21 @@ function createSelectors(selectorSpecification) {
                 propertyValue._export !== false
             ) {
                 const selectorName = createSelectorName(propertyName);
-                const { selectState, ...remainingSelectors } = createSelectors({
-                    ...propertyValue,
-                    _selector: (state) => state[propertyName]
-                });
+                const selectorFunction = (_state) => {
+                    const state = selectors.selectState(_state);
+
+                    return Object.hasOwn(state, propertyName)
+                        ? state[propertyName]
+                        : getDefaultForPropertySelector(propertyValue);
+                };
 
                 return {
                     ...selectors,
-                    [selectorName]: (state) => {
-                        return Object.hasOwn(state, propertyName)
-                            ? selectors.selectState(state)[propertyName]
-                            : getDefaultForPropertySelector(
-                                  selectorSpecification[propertyName]
-                              );
-                    },
-                    ...remainingSelectors
+                    [selectorName]: selectorFunction,
+                    ...createSelectors({
+                        ...propertyValue,
+                        _selector: selectorFunction
+                    })
                 };
             }
 
