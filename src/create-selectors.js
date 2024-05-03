@@ -1,19 +1,9 @@
 import R from 'ramda';
 
-function createSelectorName(propertyName, propertySpec, prevSelectorNames) {
+function createSelectorName(propertyName) {
     const _createSelectorName = (propertyName) =>
         `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
     const selectorName = _createSelectorName(propertyName);
-
-    if (prevSelectorNames.includes(selectorName)) {
-        if (Object.hasOwn(propertySpec, '_alternative')) {
-            return _createSelectorName(propertySpec['_alternative']);
-        }
-
-        throw new Error(
-            `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
-        );
-    }
 
     return selectorName;
 }
@@ -44,10 +34,8 @@ function checkIsPlainObject(value) {
 
 const reservedKeywords = ['_default', '_export', 'type', '_alternative'];
 
-function _createSelectors(selectorSpecification, prevSelectorNames) {
-    const selectors = {
-        selectState: selectorSpecification._selector ?? R.identity
-    };
+function _createSelectors(selectorSpecification) {
+    const selectState = selectorSpecification._selector ?? R.identity;
 
     return Object.entries(selectorSpecification).reduce(
         (accSelectors, [propertyName, propertySpec]) => {
@@ -61,12 +49,11 @@ function _createSelectors(selectorSpecification, prevSelectorNames) {
             ) {
                 const selectorName = createSelectorName(
                     propertyName,
-                    propertySpec,
-                    prevSelectorNames
+                    propertySpec
                 );
 
                 const selectorFunction = (_state) => {
-                    const state = selectors.selectState(_state);
+                    const state = selectState(_state);
 
                     return Object.hasOwn(state, propertyName) &&
                         state[propertyName] !== undefined
@@ -74,29 +61,79 @@ function _createSelectors(selectorSpecification, prevSelectorNames) {
                         : getDefaultForPropertySelector(propertySpec);
                 };
 
-                accSelectors[selectorName] = selectorFunction;
-                prevSelectorNames.push(selectorName);
+                const subSelectors = _createSelectors({
+                    ...propertySpec,
+                    _selector: selectorFunction
+                });
 
-                return {
+                return [
+                    {
+                        selectorName: selectorName,
+
+                        ...(Object.hasOwn(propertySpec, '_alternative')
+                            ? {
+                                  alternativeName: createSelectorName(
+                                      propertySpec['_alternative']
+                                  )
+                              }
+                            : {}),
+                        selectorFunction: selectorFunction
+                    },
                     ...accSelectors,
-                    ..._createSelectors(
-                        {
-                            ...propertySpec,
-                            _selector: selectorFunction
-                        },
-                        prevSelectorNames
-                    )
-                };
+                    ...subSelectors
+                ];
             }
 
             return accSelectors;
         },
-        selectors
+        []
     );
 }
 
+function createRootSelectors(selectorSpecification) {
+    const selectors = _createSelectors(selectorSpecification);
+
+    return [
+        ...selectors,
+
+        {
+            selectorName: 'selectState',
+            selectorFunction: selectorSpecification._selector ?? R.identity
+        }
+    ];
+}
+
 function createSelectors(selectorSpecification) {
-    return _createSelectors(selectorSpecification, []);
+    const storedSelectors = createRootSelectors(selectorSpecification);
+
+    return storedSelectors.reduce((accSelectors, selector) => {
+        const { selectorName, selectorFunction } = selector;
+
+        if (Object.hasOwn(accSelectors, selectorName)) {
+            const { alternativeName, selectorFunction: origSelectorFunction } =
+                storedSelectors.find(
+                    (currSelector) => currSelector.selectorName === selectorName
+                );
+
+            if (alternativeName) {
+                accSelectors[alternativeName] = origSelectorFunction;
+
+                return {
+                    ...accSelectors,
+                    [selectorName]: selectorFunction
+                };
+            }
+
+            throw new Error(
+                `Invariant failed: The selector names [${selectorName}] are already in use. Please use an alternative name using '_name' or '_names'`
+            );
+        }
+
+        return {
+            ...accSelectors,
+            [selectorName]: selectorFunction
+        };
+    }, {});
 }
 
 export default createSelectors;
