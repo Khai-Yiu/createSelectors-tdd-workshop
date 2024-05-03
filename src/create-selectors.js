@@ -57,7 +57,7 @@ function _createSelectors(selectorSpecification, prevSelectorNames) {
 
             if (
                 checkIsPlainObject(propertySpec) &&
-                propertySpec._export !== false
+                propertySpec['_export'] !== false
             ) {
                 const selectorName = createSelectorName(
                     propertyName,
@@ -66,7 +66,7 @@ function _createSelectors(selectorSpecification, prevSelectorNames) {
                 );
 
                 const selectorFunction = (_state) => {
-                    const state = accSelectors.selectState(_state);
+                    const state = selectors.selectState(_state);
 
                     return Object.hasOwn(state, propertyName) &&
                         state[propertyName] !== undefined
