@@ -253,7 +253,7 @@ describe(`create-selectors.js`, () => {
             });
             expect(selectors.selectAnIndexOfObjects({}, {})).toEqual({});
         });
-        it.skip(`selects an entry from an index`, () => {
+        it(`selects an entry from an index`, () => {
             const state = {
                 someRoot: {
                     test: {
@@ -524,6 +524,59 @@ describe(`create-selectors.js`, () => {
                     );
                 }
             });
+        });
+    });
+    describe(`providing your own return function`, () => {
+        it.skip(`calls a provided return function`, () => {
+            const state = {
+                mapIndex: {
+                    '5ae40702-2d64-4ab6-b755-646bcf79a286': {
+                        uuid: '5ae40702-2d64-4ab6-b755-646bcf79a286',
+                        name: 'one'
+                    },
+                    'ea9cb69e-0993-40ad-897d-41fae23f2a35': {
+                        uuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35',
+                        name: 'two'
+                    }
+                }
+            };
+            const selectors = createSelectors({
+                // _export: true,
+                mapIndex: {
+                    _type: 'index',
+                    _export: true,
+                    map: {
+                        _export: true,
+                        // lookup the key in the props instead of using 'map'
+                        _key: 'mapUuid'
+                    },
+                    maps: {
+                        _type: 'list',
+                        _export: true,
+                        // apply this function to the result of the root selector
+                        _func: Object.values,
+                        names: {
+                            _type: 'list',
+                            _export: true,
+                            _func: map(({ name } = {}) => name)
+                        }
+                    },
+                    keys: {
+                        _type: 'list',
+                        _export: true,
+                        _func: Object.keys
+                    }
+                }
+            });
+            expect(selectors.selectState(state, {})).toEqual(state);
+            expect(selectors.selectMapIndex(state, {})).toEqual(state.mapIndex);
+            expect(selectors.selectMaps(state)).toEqual(
+                Object.values(state.mapIndex)
+            );
+            expect(selectors.selectKeys(state)).toEqual(
+                Object.keys(state.mapIndex)
+            );
+            expect(selectors.selectNames(state)).toEqual(['one', 'two']);
         });
     });
 });
