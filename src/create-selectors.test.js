@@ -499,6 +499,31 @@ describe(`create-selectors.js`, () => {
                     state.rootOne.level2.simpleString
                 );
             });
+            it(`does not permit use '_names' and '_name' at the same time`, () => {
+                try {
+                    createSelectors({
+                        rootOne: {
+                            simpleString: {},
+                            level2: {
+                                simpleString: {
+                                    _name: 'selectSimpleString2',
+                                    _names: [
+                                        'selectSimpleString2',
+                                        '$$selectSimpleString2'
+                                    ]
+                                }
+                            }
+                        }
+                    });
+                    fail('Must throw exception');
+                } catch (err) {
+                    expect(err).toEqual(
+                        Error(
+                            'Invariant failed: You cannot use _name (selectSimpleString2) and _names (selectSimpleString2,$$selectSimpleString2) at the same time.'
+                        )
+                    );
+                }
+            });
         });
     });
 });
