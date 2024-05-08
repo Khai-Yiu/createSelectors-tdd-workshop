@@ -32,6 +32,34 @@ function getDefaultForPropertySelector(selectorSpecification) {
     }
 }
 
+function createSelectorsOfCurrentSpec(
+    propertyName,
+    propertySpec,
+    selectorFunction
+) {
+    if (Object.hasOwn(propertySpec, '_names')) {
+        return propertySpec['_names'].reduce(
+            (accSelectors, currentName) => [
+                ...accSelectors,
+                {
+                    selectorName: currentName,
+                    ...getAlternativeName(propertySpec),
+                    selectorFunction: selectorFunction
+                }
+            ],
+            []
+        );
+    }
+
+    return [
+        {
+            selectorName: createSelectorName(propertyName),
+            ...getAlternativeName(propertySpec),
+            selectorFunction: selectorFunction
+        }
+    ];
+}
+
 function checkIsPlainObject(value) {
     return (
         value !== null &&
@@ -52,7 +80,6 @@ function _createSelectors(selectorSpecification, parentSelector) {
                 return accSelectors;
             }
 
-            const selectorName = createSelectorName(propertyName);
             const selectorFunction = (_state) => {
                 const state = parentSelector(_state);
 
@@ -63,11 +90,11 @@ function _createSelectors(selectorSpecification, parentSelector) {
             };
 
             return [
-                {
-                    selectorName: selectorName,
-                    ...getAlternativeName(propertySpec),
-                    selectorFunction: selectorFunction
-                },
+                ...createSelectorsOfCurrentSpec(
+                    propertyName,
+                    propertySpec,
+                    selectorFunction
+                ),
                 ...accSelectors,
                 ..._createSelectors(propertySpec, selectorFunction)
             ];
