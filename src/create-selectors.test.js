@@ -462,6 +462,22 @@ describe(`create-selectors.js`, () => {
                     state.rootOne.simpleString
                 );
             });
+            it(`does not prefix the alternative name with 'select' if '_name'`, () => {
+                const selectors = createSelectors({
+                    rootOne: {
+                        simpleString: {},
+                        level2: {
+                            simpleString: {
+                                _export: true,
+                                _name: 'selectSimpleString2'
+                            }
+                        }
+                    }
+                });
+                expect(selectors.selectSimpleString2(state, {})).toEqual(
+                    state.rootOne.level2.simpleString
+                );
+            });
         });
     });
 });
