@@ -1,11 +1,7 @@
 import R from 'ramda';
 
 function createSelectorName(propertyName) {
-    const _createSelectorName = (propertyName) =>
-        `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
-    const selectorName = _createSelectorName(propertyName);
-
-    return selectorName;
+    return `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
 }
 
 function getDefaultValueForType(type) {
@@ -34,89 +30,79 @@ function checkIsPlainObject(value) {
 
 const reservedKeywords = ['_default', '_export', 'type', '_alternative'];
 
-function _createSelectors(selectorSpecification) {
-    const selectState = selectorSpecification._selector ?? R.identity;
-
+function _createSelectors(selectorSpecification, parentSelector) {
     return Object.entries(selectorSpecification).reduce(
         (accSelectors, [propertyName, propertySpec]) => {
-            if (reservedKeywords.includes(propertyName)) {
+            if (
+                reservedKeywords.includes(propertyName) ||
+                !(
+                    checkIsPlainObject(propertySpec) &&
+                    propertySpec['_export'] !== false
+                )
+            ) {
                 return accSelectors;
             }
 
-            if (
-                checkIsPlainObject(propertySpec) &&
-                propertySpec['_export'] !== false
-            ) {
-                const selectorName = createSelectorName(
-                    propertyName,
-                    propertySpec
-                );
+            const selectorName = createSelectorName(propertyName);
 
-                const selectorFunction = (_state) => {
-                    const state = selectState(_state);
+            const selectorFunction = (_state) => {
+                const state = parentSelector(_state);
 
-                    return Object.hasOwn(state, propertyName) &&
-                        state[propertyName] !== undefined
-                        ? state[propertyName]
-                        : getDefaultForPropertySelector(propertySpec);
-                };
+                return Object.hasOwn(state, propertyName) &&
+                    state[propertyName] !== undefined
+                    ? state[propertyName]
+                    : getDefaultForPropertySelector(propertySpec);
+            };
 
-                const subSelectors = _createSelectors({
-                    ...propertySpec,
-                    _selector: selectorFunction
-                });
+            const subSelectors = _createSelectors(
+                propertySpec,
+                selectorFunction
+            );
 
-                return [
-                    {
-                        selectorName: selectorName,
+            return [
+                {
+                    selectorName: selectorName,
 
-                        ...(Object.hasOwn(propertySpec, '_alternative')
-                            ? {
-                                  alternativeName: createSelectorName(
-                                      propertySpec['_alternative']
-                                  )
-                              }
-                            : {}),
-                        selectorFunction: selectorFunction
-                    },
-                    ...accSelectors,
-                    ...subSelectors
-                ];
-            }
-
-            return accSelectors;
+                    ...(Object.hasOwn(propertySpec, '_alternative')
+                        ? {
+                              alternativeName: createSelectorName(
+                                  propertySpec['_alternative']
+                              )
+                          }
+                        : {}),
+                    selectorFunction: selectorFunction
+                },
+                ...accSelectors,
+                ...subSelectors
+            ];
         },
         []
     );
 }
 
-function createRootSelectors(selectorSpecification) {
-    const selectors = _createSelectors(selectorSpecification);
-
-    return [
-        ...selectors,
-
+function createSelectors(selectorSpecification) {
+    const parentSelector = selectorSpecification._selector ?? R.identity;
+    const selectors = [
+        ..._createSelectors(selectorSpecification, parentSelector),
         {
             selectorName: 'selectState',
-            selectorFunction: selectorSpecification._selector ?? R.identity
+            selectorFunction: parentSelector
         }
     ];
-}
 
-function createSelectors(selectorSpecification) {
-    const storedSelectors = createRootSelectors(selectorSpecification);
-
-    return storedSelectors.reduce((accSelectors, selector) => {
+    return selectors.reduce((accSelectors, selector) => {
         const { selectorName, selectorFunction } = selector;
 
         if (Object.hasOwn(accSelectors, selectorName)) {
-            const { alternativeName, selectorFunction: origSelectorFunction } =
-                storedSelectors.find(
-                    (currSelector) => currSelector.selectorName === selectorName
-                );
+            const alternativeSelector = selectors.find(
+                (currSelector) =>
+                    currSelector.selectorName === selectorName &&
+                    Object.hasOwn(currSelector, 'alternativeName')
+            );
 
-            if (alternativeName) {
-                accSelectors[alternativeName] = origSelectorFunction;
+            if (alternativeSelector !== undefined) {
+                accSelectors[alternativeSelector['alternativeName']] =
+                    alternativeSelector['selectorFunction'];
 
                 return {
                     ...accSelectors,
