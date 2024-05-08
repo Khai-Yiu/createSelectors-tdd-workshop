@@ -87,13 +87,22 @@ function _createSelectors(selectorSpecification, parentSelector) {
                 );
             }
 
-            const selectorFunction = (_state) => {
-                const state = parentSelector(_state);
+            const selectorFunction = (_state, props) => {
+                const state = parentSelector(_state, props);
 
-                return Object.hasOwn(state, propertyName) &&
+                if (
+                    Object.hasOwn(propertySpec, '_key') &&
+                    Object.hasOwn(props, propertySpec['_key'])
+                ) {
+                    return state[props[propertySpec['_key']]];
+                } else if (
+                    Object.hasOwn(state, propertyName) &&
                     state[propertyName] !== undefined
-                    ? state[propertyName]
-                    : getDefaultForPropertySelector(propertySpec);
+                ) {
+                    return state[propertyName];
+                } else {
+                    return getDefaultForPropertySelector(propertySpec);
+                }
             };
 
             return [
