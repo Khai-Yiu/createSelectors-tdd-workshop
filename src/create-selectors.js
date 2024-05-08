@@ -95,6 +95,8 @@ function _createSelectors(selectorSpecification, parentSelector) {
                     Object.hasOwn(props, propertySpec['_key'])
                 ) {
                     return state[props[propertySpec['_key']]];
+                } else if (Object.hasOwn(propertySpec, '_func')) {
+                    return propertySpec['_func'](state, props);
                 } else if (
                     Object.hasOwn(state, propertyName) &&
                     state[propertyName] !== undefined
