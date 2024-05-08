@@ -4,6 +4,18 @@ function createSelectorName(propertyName) {
     return `select${propertyName.charAt(0).toUpperCase()}${propertyName.slice(1)}`;
 }
 
+function getAlternativeName(specification) {
+    if (Object.hasOwn(specification, '_alternative')) {
+        return {
+            alternativeName: createSelectorName(specification['_alternative'])
+        };
+    } else if (Object.hasOwn(specification, '_name')) {
+        return { alternativeName: specification['_name'] };
+    }
+
+    return {};
+}
+
 function getDefaultValueForType(type) {
     if (type === 'list') {
         return [];
@@ -28,13 +40,10 @@ function checkIsPlainObject(value) {
     );
 }
 
-const reservedKeywords = ['_default', '_export', 'type', '_alternative'];
-
 function _createSelectors(selectorSpecification, parentSelector) {
     return Object.entries(selectorSpecification).reduce(
         (accSelectors, [propertyName, propertySpec]) => {
             if (
-                reservedKeywords.includes(propertyName) ||
                 !(
                     checkIsPlainObject(propertySpec) &&
                     propertySpec['_export'] !== false
@@ -44,7 +53,6 @@ function _createSelectors(selectorSpecification, parentSelector) {
             }
 
             const selectorName = createSelectorName(propertyName);
-
             const selectorFunction = (_state) => {
                 const state = parentSelector(_state);
 
@@ -54,26 +62,14 @@ function _createSelectors(selectorSpecification, parentSelector) {
                     : getDefaultForPropertySelector(propertySpec);
             };
 
-            const subSelectors = _createSelectors(
-                propertySpec,
-                selectorFunction
-            );
-
             return [
                 {
                     selectorName: selectorName,
-
-                    ...(Object.hasOwn(propertySpec, '_alternative')
-                        ? {
-                              alternativeName: createSelectorName(
-                                  propertySpec['_alternative']
-                              )
-                          }
-                        : {}),
+                    ...getAlternativeName(propertySpec),
                     selectorFunction: selectorFunction
                 },
                 ...accSelectors,
-                ...subSelectors
+                ..._createSelectors(propertySpec, selectorFunction)
             ];
         },
         []
