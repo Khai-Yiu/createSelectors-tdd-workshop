@@ -478,6 +478,27 @@ describe(`create-selectors.js`, () => {
                     state.rootOne.level2.simpleString
                 );
             });
+            it(`permits definition of multiple names via '_names'`, () => {
+                const selectors = createSelectors({
+                    rootOne: {
+                        simpleString: {},
+                        level2: {
+                            simpleString: {
+                                _names: [
+                                    'selectSimpleString2',
+                                    '$$selectSimpleString2'
+                                ]
+                            }
+                        }
+                    }
+                });
+                expect(selectors.selectSimpleString2(state, {})).toEqual(
+                    state.rootOne.level2.simpleString
+                );
+                expect(selectors.$$selectSimpleString2(state, {})).toEqual(
+                    state.rootOne.level2.simpleString
+                );
+            });
         });
     });
 });
