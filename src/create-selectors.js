@@ -78,6 +78,13 @@ function _createSelectors(selectorSpecification, parentSelector) {
                 )
             ) {
                 return accSelectors;
+            } else if (
+                Object.hasOwn(propertySpec, '_name') &&
+                Object.hasOwn(propertySpec, '_names')
+            ) {
+                throw new Error(
+                    `Invariant failed: You cannot use _name (${propertySpec['_name']}) and _names (${propertySpec['_names']}) at the same time.`
+                );
             }
 
             const selectorFunction = (_state) => {
