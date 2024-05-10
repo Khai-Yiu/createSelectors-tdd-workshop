@@ -699,12 +699,85 @@ describe(`create-selectors.js`, () => {
                     }
                 }
             });
+            console.log(selectors);
             expect(selectors.selectMaps(state)).toEqual(
                 Object.values(state.mapIndex)
             );
             expect(selectors.selectMapByName(state, { name: 'one' })).toEqual(
                 state.mapIndex['5ae40702-2d64-4ab6-b755-646bcf79a286']
             );
+        });
+    });
+    describe(`accessing the root state without impacting the memoization`, () => {
+        describe(`providing additional selector functions`, () => {
+            it(`executes  additional selector functions and passes the result on to a provided function`, () => {
+                const state = {
+                    mapIndex: {
+                        '5ae40702-2d64-4ab6-b755-646bcf79a286': {
+                            uuid: '5ae40702-2d64-4ab6-b755-646bcf79a286',
+                            name: 'one'
+                        },
+                        'ea9cb69e-0993-40ad-897d-41fae23f2a35': {
+                            uuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35',
+                            name: 'two'
+                        }
+                    }
+                };
+                const selectors = createSelectors({
+                    // _export: true,
+                    mapIndex: {
+                        _type: 'index',
+                        maps: {
+                            _type: 'list',
+                            // apply this function to the result of the root selector
+                            _func: Object.values,
+                            mapByName: {
+                                _propsKeys: ['name'],
+                                _func: (maps, name) =>
+                                    maps.find((map) => map.name === name)
+                            }
+                        }
+                    }
+                });
+                expect(selectors.selectMaps(state)).toEqual(
+                    Object.values(state.mapIndex)
+                );
+                expect(
+                    selectors.selectMapByName(state, { name: 'one' })
+                ).toEqual(
+                    state.mapIndex['5ae40702-2d64-4ab6-b755-646bcf79a286']
+                );
+                selectors.selectMapByName(state, { name: 'one' });
+                selectors.selectMapByName(state, { name: 'one' });
+                selectors.selectMapByName(state, { name: 'one' });
+                expect(selectors.selectMapByName.recomputations()).toEqual(1);
+                selectors.selectMapByName(state, { name: 'two' });
+                expect(selectors.selectMapByName.recomputations()).toEqual(2);
+                selectors.selectMapByName({ ...state }, { name: 'two' });
+                expect(selectors.selectMapByName.recomputations()).toEqual(2);
+                state.mapIndex['5ae40702-2d64-4ab6-b755-646bcf79a286'].label =
+                    'test';
+                const newState = {
+                    ...state,
+                    mapIndex: {
+                        ...state.mapIndex,
+                        '5ae40702-2d64-4ab6-b755-646bcf79a286': {
+                            ...state.mapIndex[
+                                '5ae40702-2d64-4ab6-b755-646bcf79a286'
+                            ],
+                            label: 'test'
+                        }
+                    }
+                };
+                selectors.selectMapByName(newState, { name: 'two' });
+                expect(selectors.selectMapByName.recomputations()).toEqual(3);
+                const newState2 = {
+                    ...newState,
+                    label: 'test'
+                };
+                selectors.selectMapByName(newState2, { name: 'two' });
+                expect(selectors.selectMapByName.recomputations()).toEqual(3);
+            });
         });
     });
 });
