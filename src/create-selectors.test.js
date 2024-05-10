@@ -1,5 +1,5 @@
-import createSelectors from './create-selectors';
 import R from 'ramda';
+import createSelectors from './create-selectors';
 
 const state = {
     mapIndex: {
@@ -153,6 +153,7 @@ describe(`create-selectors.js`, () => {
                     _default: true
                 }
             });
+            // eslint-disable-next-line
             expect(selectors.selectSimpleBoolean(state, {})).toEqual(false);
         });
         it(`returns a default value for a simple boolean property`, () => {
@@ -161,6 +162,7 @@ describe(`create-selectors.js`, () => {
                     _default: true
                 }
             });
+            // eslint-disable-next-line
             const { simpleBoolean, ...restState } = state;
             expect(selectors.selectSimpleBoolean(restState, {})).toEqual(true);
         });
@@ -171,6 +173,7 @@ describe(`create-selectors.js`, () => {
                     _export: true
                 }
             });
+            // eslint-disable-next-line
             const { simpleString, ...restState } = state;
             expect(selectors.selectSimpleString(restState, {})).toEqual(
                 'default value'
@@ -206,6 +209,7 @@ describe(`create-selectors.js`, () => {
                     _export: true
                 }
             });
+            // eslint-disable-next-line
             const { aListOfStrings, ...restState } = state;
             expect(selectors.selectAListOfStrings(restState, {})).toEqual([]);
         });
@@ -217,6 +221,7 @@ describe(`create-selectors.js`, () => {
                     _export: true
                 }
             });
+            // eslint-disable-next-line
             const { aListOfStrings, ...restState } = state;
             expect(selectors.selectAListOfStrings(restState, {})).toEqual([
                 'default value'
@@ -338,6 +343,7 @@ describe(`create-selectors.js`, () => {
                     nodeUuid: '5f391310-fb9c-44bc-a3db-e1572ac340b9'
                 })
             ).toEqual(
+                // eslint-disable-next-line
                 state.someRoot.mapIndex['ea9cb69e-0993-40ad-897d-41fae23f2a35']
                     .nodeIndex['5f391310-fb9c-44bc-a3db-e1572ac340b9']
             );
@@ -371,6 +377,7 @@ describe(`create-selectors.js`, () => {
                             simpleBoolean: false
                         }
                     };
+                    // eslint-disable-next-line
                     expect(
                         selectors.selectSimpleBoolean(simpleState, {})
                     ).toEqual(false);
@@ -470,6 +477,23 @@ describe(`create-selectors.js`, () => {
                         level2: {
                             simpleString: {
                                 _export: true,
+                                _name: 'selectSimpleString2'
+                            }
+                        }
+                    }
+                });
+                expect(selectors.selectSimpleString2(state, {})).toEqual(
+                    state.rootOne.level2.simpleString
+                );
+            });
+            it(`uses '_name' over '_alternative'`, () => {
+                const selectors = createSelectors({
+                    rootOne: {
+                        simpleString: {},
+                        level2: {
+                            simpleString: {
+                                _export: true,
+                                _alternative: 'dontUseMe',
                                 _name: 'selectSimpleString2'
                             }
                         }
@@ -636,6 +660,51 @@ describe(`create-selectors.js`, () => {
                     deletable: true
                 })
             ).toEqual([]);
+        });
+    });
+    describe(`providing additional selector functions`, () => {
+        const createSelectFromProps =
+            (key) =>
+            (state, { [key]: value } = {}) =>
+                value;
+        it(`executes  additional selector functions and passes the result on to a provided function`, () => {
+            const state = {
+                mapIndex: {
+                    '5ae40702-2d64-4ab6-b755-646bcf79a286': {
+                        uuid: '5ae40702-2d64-4ab6-b755-646bcf79a286',
+                        name: 'one'
+                    },
+                    'ea9cb69e-0993-40ad-897d-41fae23f2a35': {
+                        uuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35',
+                        name: 'two'
+                    }
+                }
+            };
+            const selectors = createSelectors({
+                // _export: true,
+                mapIndex: {
+                    _type: 'index',
+                    _export: true,
+                    maps: {
+                        _type: 'list',
+                        _export: true,
+                        // apply this function to the result of the root selector
+                        _func: Object.values,
+                        mapByName: {
+                            _export: true,
+                            _selectors: [createSelectFromProps('name')],
+                            _func: (maps, name) =>
+                                maps.find((map) => map.name === name)
+                        }
+                    }
+                }
+            });
+            expect(selectors.selectMaps(state)).toEqual(
+                Object.values(state.mapIndex)
+            );
+            expect(selectors.selectMapByName(state, { name: 'one' })).toEqual(
+                state.mapIndex['5ae40702-2d64-4ab6-b755-646bcf79a286']
+            );
         });
     });
 });
