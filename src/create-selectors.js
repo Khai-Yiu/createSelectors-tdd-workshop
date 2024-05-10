@@ -96,7 +96,17 @@ function _createSelectors(selectorSpecification, parentSelector) {
                 ) {
                     return state[props[propertySpec['_key']]];
                 } else if (Object.hasOwn(propertySpec, '_func')) {
-                    return propertySpec['_func'](state, props);
+                    const funcArgs = Object.hasOwn(propertySpec, '_propsKeys')
+                        ? propertySpec['_propsKeys'].reduce(
+                              (accArgs, propsKey) => [
+                                  ...accArgs,
+                                  props[propsKey]
+                              ],
+                              []
+                          )
+                        : [];
+
+                    return propertySpec['_func'](state, ...funcArgs);
                 } else if (
                     Object.hasOwn(state, propertyName) &&
                     state[propertyName] !== undefined
