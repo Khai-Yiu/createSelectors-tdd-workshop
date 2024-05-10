@@ -5,12 +5,12 @@ function createSelectorName(propertyName) {
 }
 
 function getAlternativeName(specification) {
-    if (Object.hasOwn(specification, '_alternative')) {
+    if (Object.hasOwn(specification, '_name')) {
+        return { alternativeName: specification['_name'] };
+    } else if (Object.hasOwn(specification, '_alternative')) {
         return {
             alternativeName: createSelectorName(specification['_alternative'])
         };
-    } else if (Object.hasOwn(specification, '_name')) {
-        return { alternativeName: specification['_name'] };
     }
 
     return {};
@@ -60,6 +60,25 @@ function createSelectorsOfCurrentSpec(
     ];
 }
 
+function getFunctionProps(state, props, specification) {
+    if (Object.hasOwn(specification, '_selectors')) {
+        return specification['_selectors'].reduce(
+            (accArgs, selectorFunction) => [
+                ...accArgs,
+                selectorFunction(state, props)
+            ],
+            []
+        );
+    } else if (Object.hasOwn(specification, '_propsKeys')) {
+        return specification['_propsKeys'].reduce(
+            (accArgs, propsKey) => [...accArgs, props[propsKey]],
+            []
+        );
+    }
+
+    return [];
+}
+
 function checkIsPlainObject(value) {
     return (
         value !== null &&
@@ -96,17 +115,10 @@ function _createSelectors(selectorSpecification, parentSelector) {
                 ) {
                     return state[props[propertySpec['_key']]];
                 } else if (Object.hasOwn(propertySpec, '_func')) {
-                    const funcArgs = Object.hasOwn(propertySpec, '_propsKeys')
-                        ? propertySpec['_propsKeys'].reduce(
-                              (accArgs, propsKey) => [
-                                  ...accArgs,
-                                  props[propsKey]
-                              ],
-                              []
-                          )
-                        : [];
-
-                    return propertySpec['_func'](state, ...funcArgs);
+                    return propertySpec['_func'](
+                        state,
+                        ...getFunctionProps(state, props, propertySpec)
+                    );
                 } else if (
                     Object.hasOwn(state, propertyName) &&
                     state[propertyName] !== undefined
