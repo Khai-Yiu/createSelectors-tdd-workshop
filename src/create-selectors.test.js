@@ -579,5 +579,63 @@ describe(`create-selectors.js`, () => {
             );
             expect(selectors.selectNames(state)).toEqual(['one', 'two']);
         });
+        it(`calls a provided return function with additional values from the props`, () => {
+            const state = {
+                mapIndex: {
+                    '5ae40702-2d64-4ab6-b755-646bcf79a286': {
+                        uuid: '5ae40702-2d64-4ab6-b755-646bcf79a286',
+                        name: 'one',
+                        deletable: false
+                    },
+                    'ea9cb69e-0993-40ad-897d-41fae23f2a35': {
+                        uuid: 'ea9cb69e-0993-40ad-897d-41fae23f2a35',
+                        name: 'two',
+                        deletable: true
+                    }
+                }
+            };
+            const selectors = createSelectors({
+                // _export: true,
+                mapIndex: {
+                    _type: 'index',
+                    _export: true,
+                    maps: {
+                        _type: 'list',
+                        _export: true,
+                        // apply this function to the result of the root selector
+                        _func: Object.values,
+                        mapsByNameAndDeleteFlag: {
+                            _type: 'list',
+                            _export: true,
+                            _propsKeys: ['name', 'deletable'],
+                            _func: (maps, name, deletable) => {
+                                return maps.filter(
+                                    (map) =>
+                                        map.name === name &&
+                                        map.deletable === deletable
+                                );
+                            }
+                        }
+                    }
+                }
+            });
+            expect(selectors.selectState(state, {})).toEqual(state);
+            expect(selectors.selectMapIndex(state, {})).toEqual(state.mapIndex);
+            expect(selectors.selectMaps(state)).toEqual(
+                Object.values(state.mapIndex)
+            );
+            expect(
+                selectors.selectMapsByNameAndDeleteFlag(state, {
+                    name: 'one',
+                    deletable: false
+                })
+            ).toEqual([state.mapIndex['5ae40702-2d64-4ab6-b755-646bcf79a286']]);
+            expect(
+                selectors.selectMapsByNameAndDeleteFlag(state, {
+                    name: 'one',
+                    deletable: true
+                })
+            ).toEqual([]);
+        });
     });
 });
