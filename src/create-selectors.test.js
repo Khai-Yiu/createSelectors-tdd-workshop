@@ -699,7 +699,6 @@ describe(`create-selectors.js`, () => {
                     }
                 }
             });
-            console.log(selectors);
             expect(selectors.selectMaps(state)).toEqual(
                 Object.values(state.mapIndex)
             );
