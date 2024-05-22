@@ -787,8 +787,20 @@ describe(`create-selectors.js`, () => {
                     _export: true
                 }
             });
-            expect(selectors.selectSimpleString).not.toBeUndefined();
+            expect(selectors.selectSimpleString1).not.toBeUndefined();
             expect(selectors.selectSimpleString2).not.toBeUndefined();
+        });
+        it(`does not export a selector if the _export flag is set to false or the selector key starts with an '$'`, () => {
+            const selectors = createSelectors({
+                simpleString2: {
+                    _export: false
+                },
+                $simpleString1: {}
+            });
+            expect(selectors.selectSimpleString1).toBeUndefined();
+            expect(selectors.select$SimpleString1).toBeUndefined();
+            expect(selectors.select$simpleString1).toBeUndefined();
+            expect(selectors.selectSimpleString2).toBeUndefined();
         });
     });
 });
