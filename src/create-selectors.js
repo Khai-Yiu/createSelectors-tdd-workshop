@@ -44,12 +44,36 @@ function getIsForExport(propertyName, specification) {
     return !propertyName.startsWith('$') && specification['_export'] !== false;
 }
 
+function createSelectorWithInjectedProps(specification, selectorFunction) {
+    if (Object.hasOwn(specification, '_stateToProps')) {
+        return (state, props) => {
+            const propsToInject = Object.entries(
+                specification['_stateToProps']
+            ).reduce(
+                (accPropsToInject, [propsKeyName, currentSelector]) => ({
+                    ...accPropsToInject,
+                    [propsKeyName]: currentSelector(state, props)
+                }),
+                props
+            );
+
+            return selectorFunction(state, propsToInject);
+        };
+    }
+
+    return selectorFunction;
+}
+
 function createSelectorsOfCurrentSpec(
     propertyName,
     specification,
     selectorFunction
 ) {
     const isForExport = getIsForExport(propertyName, specification);
+    const selectorWithInjectedProps = createSelectorWithInjectedProps(
+        specification,
+        selectorFunction
+    );
 
     if (Object.hasOwn(specification, '_names')) {
         return specification['_names'].reduce(
@@ -58,7 +82,7 @@ function createSelectorsOfCurrentSpec(
                 {
                     selectorName: currentName,
                     ...getAlternativeName(specification),
-                    selectorFunction: selectorFunction,
+                    selectorFunction: selectorWithInjectedProps,
                     isExported: isForExport
                 }
             ],
@@ -70,7 +94,7 @@ function createSelectorsOfCurrentSpec(
         {
             selectorName: createSelectorName(propertyName),
             ...getAlternativeName(specification),
-            selectorFunction: selectorFunction,
+            selectorFunction: selectorWithInjectedProps,
             isExported: isForExport
         }
     ];
