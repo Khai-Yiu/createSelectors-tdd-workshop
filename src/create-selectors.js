@@ -40,19 +40,26 @@ function getDefaultForPropertySelector(selectorSpecification) {
     }
 }
 
+function getIsForExport(propertyName, specification) {
+    return !propertyName.startsWith('$') && specification['_export'] !== false;
+}
+
 function createSelectorsOfCurrentSpec(
     propertyName,
-    propertySpec,
+    specification,
     selectorFunction
 ) {
-    if (Object.hasOwn(propertySpec, '_names')) {
-        return propertySpec['_names'].reduce(
+    const isForExport = getIsForExport(propertyName, specification);
+
+    if (Object.hasOwn(specification, '_names')) {
+        return specification['_names'].reduce(
             (accSelectors, currentName) => [
                 ...accSelectors,
                 {
                     selectorName: currentName,
-                    ...getAlternativeName(propertySpec),
-                    selectorFunction: selectorFunction
+                    ...getAlternativeName(specification),
+                    selectorFunction: selectorFunction,
+                    isExported: isForExport
                 }
             ],
             []
@@ -62,8 +69,9 @@ function createSelectorsOfCurrentSpec(
     return [
         {
             selectorName: createSelectorName(propertyName),
-            ...getAlternativeName(propertySpec),
-            selectorFunction: selectorFunction
+            ...getAlternativeName(specification),
+            selectorFunction: selectorFunction,
+            isExported: isForExport
         }
     ];
 }
@@ -141,7 +149,7 @@ function createMemoizedSelector(selector) {
     return memoizedSelector;
 }
 
-function createWrappedSelector(selector, parentSelector) {
+function createParentSelector(selector, parentSelector) {
     const memoizedSelector = createMemoizedSelector(selector);
     const wrappedSelector = (state, props) =>
         memoizedSelector(parentSelector(state, props), props);
@@ -178,14 +186,11 @@ function createSelectorFunction(propertyName, specification) {
 function recurseCreateSelectors(selectorSpecification, parentSelector) {
     return Object.entries(selectorSpecification).reduce(
         (accSelectors, [propertyName, propertySpec]) => {
-            if (
-                !(
-                    checkIsPlainObject(propertySpec) &&
-                    propertySpec['_export'] !== false
-                )
-            ) {
+            if (!checkIsPlainObject(propertySpec)) {
                 return accSelectors;
-            } else if (
+            }
+
+            if (
                 Object.hasOwn(propertySpec, '_name') &&
                 Object.hasOwn(propertySpec, '_names')
             ) {
@@ -194,7 +199,7 @@ function recurseCreateSelectors(selectorSpecification, parentSelector) {
                 );
             }
 
-            const wrappedSelector = createWrappedSelector(
+            const newParentSelector = createParentSelector(
                 createSelectorFunction(propertyName, propertySpec),
                 parentSelector
             );
@@ -202,14 +207,24 @@ function recurseCreateSelectors(selectorSpecification, parentSelector) {
                 ...createSelectorsOfCurrentSpec(
                     propertyName,
                     propertySpec,
-                    wrappedSelector
+                    newParentSelector
                 ),
                 ...accSelectors,
-                ...recurseCreateSelectors(propertySpec, wrappedSelector)
+                ...recurseCreateSelectors(propertySpec, newParentSelector)
             ];
         },
         []
     );
+}
+
+function removeSelectorsWithExportFalse(selectors) {
+    return selectors.reduce((accSelectors, currentSelector) => {
+        if (currentSelector.isExported) {
+            return [...accSelectors, currentSelector];
+        }
+
+        return accSelectors;
+    }, []);
 }
 
 function createSelectorsObject(selectors) {
@@ -248,7 +263,9 @@ function createSelectorsObject(selectors) {
 function createSelectors(selectorSpecification) {
     const parentSelector = selectorSpecification._selector ?? R.identity;
     const selectors = [
-        ...recurseCreateSelectors(selectorSpecification, parentSelector),
+        ...removeSelectorsWithExportFalse(
+            recurseCreateSelectors(selectorSpecification, parentSelector)
+        ),
         {
             selectorName: 'selectState',
             selectorFunction: parentSelector
