@@ -151,17 +151,22 @@ function createMemoizedSelector(selector) {
 
 function createParentSelector(selector, parentSelector) {
     const memoizedSelector = createMemoizedSelector(selector);
-    const wrappedSelector = (state, props) =>
-        memoizedSelector(parentSelector(state, props), props);
-
+    const wrappedSelector = (state, props) => {
+        return memoizedSelector(parentSelector(state, props), props);
+    };
     wrappedSelector['recomputations'] = () =>
         memoizedSelector['recomputations']();
 
     return wrappedSelector;
 }
 
+function resolvePropertyName(propertyName) {
+    return propertyName.startsWith('$') ? propertyName.slice(1) : propertyName;
+}
+
 function createSelectorFunction(propertyName, specification) {
     return (state, props) => {
+        const resolvedPropertyName = resolvePropertyName(propertyName);
         if (
             Object.hasOwn(specification, '_key') &&
             Object.hasOwn(props, specification['_key'])
@@ -173,10 +178,10 @@ function createSelectorFunction(propertyName, specification) {
                 ...getFunctionProps(state, props, specification)
             );
         } else if (
-            Object.hasOwn(state, propertyName) &&
-            state[propertyName] !== undefined
+            Object.hasOwn(state, resolvedPropertyName) &&
+            state[resolvedPropertyName] !== undefined
         ) {
-            return state[propertyName];
+            return state[resolvedPropertyName];
         } else {
             return getDefaultForPropertySelector(specification);
         }
