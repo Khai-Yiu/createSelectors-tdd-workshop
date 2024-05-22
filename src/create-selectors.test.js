@@ -831,4 +831,39 @@ describe(`create-selectors.js`, () => {
             );
         });
     });
+    describe(`injecting additional props from other selectors (create-state-to-props-selector)`, () => {
+        const state = {
+            activeLevelName: 'level11',
+            secondeActiveLevelName: 'level12',
+            level11: {
+                simpleString1: 'simpleString1'
+            },
+            level12: {
+                simpleString2: 'simpleString2'
+            },
+            nestedState: {
+                simpleString3: 'simpleString3'
+            }
+        };
+
+        it(`injects a property with the value from a selector on the same level`, () => {
+            const { selectActiveLevelName } = createSelectors({
+                activeLevelName: {}
+            });
+            const { selectActiveLevel } = createSelectors({
+                activeLevel: {
+                    _stateToProps: {
+                        sameLevelActiveLevelName: selectActiveLevelName
+                    },
+                    _propsKeys: ['sameLevelActiveLevelName'],
+                    _func: (state, sameLevelActiveLevelName) => {
+                        return state[sameLevelActiveLevelName];
+                    }
+                }
+            });
+            expect(selectActiveLevel(state, {})).toEqual({
+                simpleString1: 'simpleString1'
+            });
+        });
+    });
 });
