@@ -802,5 +802,33 @@ describe(`create-selectors.js`, () => {
             expect(selectors.select$simpleString1).toBeUndefined();
             expect(selectors.selectSimpleString2).toBeUndefined();
         });
+        it(`does export descendant selectors correctly`, () => {
+            const selectors = createSelectors({
+                level11: {
+                    _export: false,
+                    simpleString1: {}
+                },
+                $level12: {
+                    simpleString2: {}
+                }
+            });
+            const state = {
+                level11: {
+                    simpleString1: 'simpleString1'
+                },
+                level12: {
+                    simpleString2: 'simpleString2'
+                }
+            };
+            expect(selectors.selectLevel11).toBeUndefined();
+            expect(selectors.selectLevel12).toBeUndefined();
+            expect(selectors.select$Level12).toBeUndefined();
+            expect(selectors.selectSimpleString1(state)).toEqual(
+                'simpleString1'
+            );
+            expect(selectors.selectSimpleString2(state)).toEqual(
+                'simpleString2'
+            );
+        });
     });
 });
