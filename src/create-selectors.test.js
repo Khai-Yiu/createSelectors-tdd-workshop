@@ -916,12 +916,10 @@ describe(`create-selectors.js`, () => {
                     }
                 }
             });
-            expect(selectSimpleString3(state)).toMatchInlineSnapshot(`
-        Array [
-          "simpleString3",
-          "level11",
-        ]
-      `);
+            expect(selectSimpleString3(state)).toEqual([
+                'simpleString3',
+                'level11'
+            ]);
         });
     });
 });

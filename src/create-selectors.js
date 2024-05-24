@@ -1,4 +1,4 @@
-import R, { sort } from 'ramda';
+import R, { prop } from 'ramda';
 
 function checkIsPlainObject(value) {
     return (
@@ -188,6 +188,16 @@ function resolvePropertyName(propertyName) {
     return propertyName.startsWith('$') ? propertyName.slice(1) : propertyName;
 }
 
+function createPropInjectedNestedSelectors(nestedSelectors, specification) {
+    return nestedSelectors.map((selector) => ({
+        ...selector,
+        selectorFunction: createSelectorWithInjectedProps(
+            specification,
+            selector['selectorFunction']
+        )
+    }));
+}
+
 function createSelectorFunction(propertyName, specification) {
     return (state, props) => {
         const resolvedPropertyName = resolvePropertyName(propertyName);
@@ -228,18 +238,36 @@ function recurseCreateSelectors(selectorSpecification, parentSelector) {
                 );
             }
 
+            const selectorFunction = createSelectorFunction(
+                propertyName,
+                propertySpec
+            );
             const newParentSelector = createParentSelector(
-                createSelectorFunction(propertyName, propertySpec),
+                selectorFunction,
                 parentSelector
             );
+
+            const currentSpecSelectors = createSelectorsOfCurrentSpec(
+                propertyName,
+                propertySpec,
+                newParentSelector
+            );
+
+            const nestedSelectors = recurseCreateSelectors(
+                propertySpec,
+                newParentSelector
+            );
+
+            const propsInjectedNestedSelectors =
+                createPropInjectedNestedSelectors(
+                    nestedSelectors,
+                    selectorSpecification
+                );
+
             return [
-                ...createSelectorsOfCurrentSpec(
-                    propertyName,
-                    propertySpec,
-                    newParentSelector
-                ),
                 ...accSelectors,
-                ...recurseCreateSelectors(propertySpec, newParentSelector)
+                ...currentSpecSelectors,
+                ...propsInjectedNestedSelectors
             ];
         },
         []
