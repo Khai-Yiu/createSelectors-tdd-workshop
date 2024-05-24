@@ -888,5 +888,40 @@ describe(`create-selectors.js`, () => {
                 simpleString2: 'simpleString2'
             });
         });
+        it(`injects a property on a higher level and passes it down to a nested selector`, () => {
+            const { selectActiveLevelName } = createSelectors({
+                activeLevelName: {}
+            });
+            const { selectSimpleString3 } = createSelectors({
+                _stateToProps: {
+                    levelZeroStateToPropsSpec: selectActiveLevelName
+                },
+                nestedState: {
+                    $simpleString3: {
+                        $simpleString31: {
+                            _func: R.identity,
+                            $simpleString32: {
+                                _func: R.identity,
+                                $simpleString33: {
+                                    _func: R.identity,
+                                    simpleString3: {
+                                        _propsKeys: [
+                                            'levelZeroStateToPropsSpec'
+                                        ],
+                                        _func: (...args) => args
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            expect(selectSimpleString3(state)).toMatchInlineSnapshot(`
+        Array [
+          "simpleString3",
+          "level11",
+        ]
+      `);
+        });
     });
 });
