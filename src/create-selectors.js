@@ -54,10 +54,10 @@ function createSelectorWithInjectedProps(specification, selectorFunction) {
                     ...accPropsToInject,
                     [propsKeyName]: currentSelector(state, props)
                 }),
-                props
+                {}
             );
 
-            return selectorFunction(state, propsToInject);
+            return selectorFunction(state, { ...propsToInject, ...props });
         };
     }
 
