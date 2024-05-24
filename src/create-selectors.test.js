@@ -865,5 +865,28 @@ describe(`create-selectors.js`, () => {
                 simpleString1: 'simpleString1'
             });
         });
+        it(`uses an existing property which has precedence over an injected one`, () => {
+            const { selectActiveLevelName } = createSelectors({
+                activeLevelName: {}
+            });
+            const { selectActiveLevel } = createSelectors({
+                activeLevel: {
+                    _stateToProps: {
+                        sameLevelActiveLevelName: selectActiveLevelName
+                    },
+                    _propsKeys: ['sameLevelActiveLevelName'],
+                    _func: (state, sameLevelActiveLevelName) => {
+                        return state[sameLevelActiveLevelName];
+                    }
+                }
+            });
+            expect(
+                selectActiveLevel(state, {
+                    sameLevelActiveLevelName: 'level12'
+                })
+            ).toEqual({
+                simpleString2: 'simpleString2'
+            });
+        });
     });
 });
