@@ -233,7 +233,10 @@ function recurseCreateSelectors(
 ) {
     return Object.entries(selectorSpecification).reduce(
         (accSelectors, [propertyName, propertySpec]) => {
-            if (!checkIsPlainObject(propertySpec)) {
+            if (
+                !checkIsPlainObject(propertySpec) ||
+                propertyName === '_stateToProps'
+            ) {
                 return accSelectors;
             }
 
