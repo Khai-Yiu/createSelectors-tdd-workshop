@@ -949,5 +949,41 @@ describe(`create-selectors.js`, () => {
                 'level12'
             ]);
         });
+        it(`it passes the state-to-props to all selectors in the '_selectors' declaration`, () => {
+            const state = {
+                activeLevelName: 'level11',
+                nestedState: {
+                    simpleString3: 'simpleString3'
+                }
+            };
+
+            const { selectActiveLevelName, selectSimpleString3 } =
+                createSelectors({
+                    activeLevelName: {},
+                    nestedState: {
+                        $simpleString3: {
+                            simpleString3: {
+                                _propsKeys: ['someProp'],
+                                _func: (...args) => args
+                            }
+                        }
+                    }
+                });
+
+            const { selectSimpleString4 } = createSelectors({
+                nestedState: {
+                    simpleString4: {
+                        _stateToProps: {
+                            someProp: selectActiveLevelName
+                        },
+                        _selectors: [selectSimpleString3],
+                        _func: (ignore, ...args) => args
+                    }
+                }
+            });
+            expect(selectSimpleString4(state)).toEqual([
+                ['simpleString3', 'level11']
+            ]);
+        });
     });
 });
