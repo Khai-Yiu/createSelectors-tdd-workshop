@@ -44,35 +44,37 @@ function getIsForExport(propertyName, specification) {
     return !propertyName.startsWith('$') && specification['_export'] !== false;
 }
 
-function createSelectorWithInjectedProps(specification, selectorFunction) {
-    if (Object.hasOwn(specification, '_stateToProps')) {
-        return (state, props) => {
-            const propsToInject = Object.entries(
-                specification['_stateToProps']
-            ).reduce(
-                (accPropsToInject, [propsKeyName, currentSelector]) => ({
-                    ...accPropsToInject,
-                    [propsKeyName]: currentSelector(state, props)
-                }),
-                {}
-            );
+function createSelectorWithInjectedProps(selectorFunction, accInjectedProps) {
+    const selectorWithInjectedProps = (state, props) => {
+        const propsToInject = Object.entries(accInjectedProps).reduce(
+            (accPropsToInject, [propsKeyName, currentSelector]) => ({
+                ...accPropsToInject,
+                [propsKeyName]: currentSelector(state, props)
+            }),
+            {}
+        );
 
-            return selectorFunction(state, { ...propsToInject, ...props });
-        };
-    }
+        return selectorFunction(state, {
+            ...propsToInject,
+            ...props
+        });
+    };
 
-    return selectorFunction;
+    selectorWithInjectedProps.recomputations = selectorFunction.recomputations;
+
+    return selectorWithInjectedProps;
 }
 
 function createSelectorsOfCurrentSpec(
     propertyName,
     specification,
-    selectorFunction
+    selectorFunction,
+    accInjectedProps
 ) {
     const isForExport = getIsForExport(propertyName, specification);
     const selectorWithInjectedProps = createSelectorWithInjectedProps(
-        specification,
-        selectorFunction
+        selectorFunction,
+        accInjectedProps
     );
 
     if (Object.hasOwn(specification, '_names')) {
@@ -178,8 +180,7 @@ function createParentSelector(selector, parentSelector) {
     const wrappedSelector = (state, props) => {
         return memoizedSelector(parentSelector(state, props), props);
     };
-    wrappedSelector['recomputations'] = () =>
-        memoizedSelector['recomputations']();
+    wrappedSelector.recomputations = memoizedSelector.recomputations;
 
     return wrappedSelector;
 }
@@ -188,14 +189,17 @@ function resolvePropertyName(propertyName) {
     return propertyName.startsWith('$') ? propertyName.slice(1) : propertyName;
 }
 
-function createPropInjectedNestedSelectors(nestedSelectors, specification) {
-    return nestedSelectors.map((selector) => ({
-        ...selector,
-        selectorFunction: createSelectorWithInjectedProps(
-            specification,
-            selector['selectorFunction']
-        )
-    }));
+function addNewInjectedProps(
+    accInjectedProps,
+    specification,
+    selectorSpecification
+) {
+    return {
+        ...accInjectedProps,
+        ...(specification._stateToProps ??
+            selectorSpecification._stateToProps ??
+            {})
+    };
 }
 
 function createSelectorFunction(propertyName, specification) {
@@ -222,7 +226,11 @@ function createSelectorFunction(propertyName, specification) {
     };
 }
 
-function recurseCreateSelectors(selectorSpecification, parentSelector) {
+function recurseCreateSelectors(
+    selectorSpecification,
+    parentSelector,
+    accInjectedProps = {}
+) {
     return Object.entries(selectorSpecification).reduce(
         (accSelectors, [propertyName, propertySpec]) => {
             if (!checkIsPlainObject(propertySpec)) {
@@ -247,27 +255,29 @@ function recurseCreateSelectors(selectorSpecification, parentSelector) {
                 parentSelector
             );
 
+            const updatedAccumulatedInjectedProps = addNewInjectedProps(
+                accInjectedProps,
+                selectorSpecification,
+                propertySpec
+            );
+
             const currentSpecSelectors = createSelectorsOfCurrentSpec(
                 propertyName,
                 propertySpec,
-                newParentSelector
+                newParentSelector,
+                updatedAccumulatedInjectedProps
             );
 
             const nestedSelectors = recurseCreateSelectors(
                 propertySpec,
-                newParentSelector
+                newParentSelector,
+                updatedAccumulatedInjectedProps
             );
-
-            const propsInjectedNestedSelectors =
-                createPropInjectedNestedSelectors(
-                    nestedSelectors,
-                    selectorSpecification
-                );
 
             return [
                 ...accSelectors,
                 ...currentSpecSelectors,
-                ...propsInjectedNestedSelectors
+                ...nestedSelectors
             ];
         },
         []
