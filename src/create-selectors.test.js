@@ -921,5 +921,33 @@ describe(`create-selectors.js`, () => {
                 'level11'
             ]);
         });
+        it(`state-to-props specs on a lower level have precedence over the specs on the higher levels`, () => {
+            const { selectActiveLevelName, selectSecondeActiveLevelName } =
+                createSelectors({
+                    activeLevelName: {},
+                    secondeActiveLevelName: {}
+                });
+            const { selectSimpleString3 } = createSelectors({
+                _stateToProps: {
+                    levelZeroStateToPropsSpec: selectActiveLevelName
+                },
+                nestedState: {
+                    _stateToProps: {
+                        // overwrite
+                        levelZeroStateToPropsSpec: selectSecondeActiveLevelName
+                    },
+                    $simpleString3: {
+                        simpleString3: {
+                            _propsKeys: ['levelZeroStateToPropsSpec'],
+                            _func: (...args) => args
+                        }
+                    }
+                }
+            });
+            expect(selectSimpleString3(state)).toEqual([
+                'simpleString3',
+                'level12'
+            ]);
+        });
     });
 });
