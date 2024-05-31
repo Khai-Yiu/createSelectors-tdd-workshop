@@ -706,6 +706,24 @@ describe(`create-selectors.js`, () => {
                 state.mapIndex['5ae40702-2d64-4ab6-b755-646bcf79a286']
             );
         });
+        it(`executes additional selector functions using the root state`, () => {
+            const { selectSimpleString } = createSelectors({
+                simpleString: {}
+            });
+            const { selectCombinedSimpleStrings } = createSelectors({
+                rootOne: {
+                    simpleString: {
+                        combinedSimpleStrings: {
+                            _selectors: [selectSimpleString],
+                            _func: (string1, string2) => `${string1} ${string2}`
+                        }
+                    }
+                }
+            });
+            expect(selectCombinedSimpleStrings(state)).toEqual(
+                'r1: three three'
+            );
+        });
     });
     describe(`accessing the root state without impacting the memoization`, () => {
         describe(`providing additional selector functions`, () => {
@@ -984,6 +1002,137 @@ describe(`create-selectors.js`, () => {
             expect(selectSimpleString4(state)).toEqual([
                 ['simpleString3', 'level11']
             ]);
+        });
+    });
+    describe(`logging selectors`, () => {
+        const state = {
+            simpleBoolean: false
+        };
+        it(`logs the input and output of a selector when the _log flag is enabled`, () => {
+            console.log = jest.fn();
+            // pretend jest.fn returns identity function
+            const { selectSimpleBoolean } = createSelectors({
+                simpleBoolean: {
+                    _log: true
+                }
+            });
+            selectSimpleBoolean(state, {});
+            expect(console.log.mock.calls).toEqual([
+                [
+                    '---- OUT ---- state ----',
+                    {
+                        simpleBoolean: false
+                    }
+                ],
+                ['---- OUT ---- select-simpleBoolean-from-parent ----', false]
+            ]);
+        });
+    });
+    describe(`create new instances of a selector`, () => {
+        describe(`simple case`, () => {
+            const state = {
+                greeting: 'Hello'
+            };
+            it(`creating new cache independent selectors`, () => {
+                const { selectGreeting } = createSelectors({
+                    greeting: {
+                        _propsKeys: ['name'],
+                        _func: ({ greeting }, name) => `${greeting} ${name}`
+                    }
+                });
+
+                const selectGreetingKarl = selectGreeting.newInstance();
+                const selectGreetingMary = selectGreeting.newInstance();
+                expect(
+                    selectGreeting(state, { name: 'Tom' })
+                ).toMatchInlineSnapshot(`"Hello Tom"`);
+
+                expect(
+                    selectGreetingKarl(state, { name: 'Karl' })
+                ).toMatchInlineSnapshot(`"Hello Karl"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+                expect(
+                    selectGreetingMary(state, { name: 'Mary' })
+                ).toMatchInlineSnapshot(`"Hello Mary"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+                expect(selectGreetingMary.recomputations()).toEqual(1);
+
+                expect(
+                    selectGreeting(state, { name: 'Gilford' })
+                ).toMatchInlineSnapshot(`"Hello Gilford"`);
+
+                expect(
+                    selectGreetingKarl(state, { name: 'Karl' })
+                ).toMatchInlineSnapshot(`"Hello Karl"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+                expect(
+                    selectGreetingMary(state, { name: 'Mary' })
+                ).toMatchInlineSnapshot(`"Hello Mary"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+                expect(selectGreetingMary.recomputations()).toEqual(1);
+            });
+        });
+        describe(`with state-to-props`, () => {
+            const state = {
+                time: '10:00',
+                meeting: {
+                    greeting: 'Hello'
+                }
+            };
+            it(`creating new cache independent selectors`, () => {
+                const { selectTime } = createSelectors(
+                    {
+                        time: {}
+                    },
+                    R.identity
+                );
+                const { selectGreeting } = createSelectors({
+                    meeting: {
+                        _stateToProps: {
+                            time: selectTime
+                        },
+                        greeting: {
+                            _propsKeys: ['name', 'time'],
+                            _func: ({ greeting }, name, time) =>
+                                `${greeting} ${name} [${time}]`
+                        }
+                    }
+                });
+
+                const selectGreetingKarl = selectGreeting.newInstance();
+                const selectGreetingMary = selectGreeting.newInstance();
+                expect(
+                    selectGreeting(state, { name: 'Tom' })
+                ).toMatchInlineSnapshot(`"Hello Tom [10:00]"`);
+
+                expect(
+                    selectGreetingKarl(state, { name: 'Karl' })
+                ).toMatchInlineSnapshot(`"Hello Karl [10:00]"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+                expect(
+                    selectGreetingMary(state, { name: 'Mary' })
+                ).toMatchInlineSnapshot(`"Hello Mary [10:00]"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+                expect(selectGreetingMary.recomputations()).toEqual(1);
+
+                expect(
+                    selectGreeting(state, { name: 'Gilford' })
+                ).toMatchInlineSnapshot(`"Hello Gilford [10:00]"`);
+
+                expect(
+                    selectGreetingKarl(state, { name: 'Karl' })
+                ).toMatchInlineSnapshot(`"Hello Karl [10:00]"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+
+                expect(
+                    selectGreetingMary(state, { name: 'Mary' })
+                ).toMatchInlineSnapshot(`"Hello Mary [10:00]"`);
+                expect(selectGreetingKarl.recomputations()).toEqual(1);
+                expect(selectGreetingMary.recomputations()).toEqual(1);
+            });
         });
     });
 });

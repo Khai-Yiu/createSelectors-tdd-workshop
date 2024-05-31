@@ -61,6 +61,7 @@ function createSelectorWithInjectedProps(selectorFunction, accInjectedProps) {
     };
 
     selectorWithInjectedProps.recomputations = selectorFunction.recomputations;
+    selectorWithInjectedProps.newInstance = selectorFunction.newInstance;
 
     return selectorWithInjectedProps;
 }
@@ -147,7 +148,7 @@ function isCachedResultValid([previousState, previousProps], [state, props]) {
     return isStateSame && isPropsSame;
 }
 
-function createMemoizedSelector(selector) {
+function createMemoizedSelector(selectorFunction) {
     let numOfComputations = 0;
     let cachedArgs = {
         state: undefined,
@@ -163,26 +164,66 @@ function createMemoizedSelector(selector) {
             )
         ) {
             numOfComputations++;
-            cachedResult = selector(state, props);
+            cachedResult = selectorFunction(state, props);
             cachedArgs = { state, props };
         }
 
         return cachedResult;
     };
 
-    memoizedSelector['recomputations'] = () => numOfComputations;
+    memoizedSelector.recomputations = () => numOfComputations;
 
     return memoizedSelector;
 }
 
-function createParentSelector(selector, parentSelector) {
-    const memoizedSelector = createMemoizedSelector(selector);
+function createSelectorWithParentState(selectorFunction, parentSelector) {
     const wrappedSelector = (state, props) => {
-        return memoizedSelector(parentSelector(state, props), props);
+        return selectorFunction(parentSelector(state, props), props);
     };
-    wrappedSelector.recomputations = memoizedSelector.recomputations;
+
+    wrappedSelector.recomputations = selectorFunction.recomputations;
 
     return wrappedSelector;
+}
+
+function createRootSelectorWithProps(selectorFunction, specification) {
+    if (Object.hasOwn(specification, '_func')) {
+        const rootSelectorWithProps = (state, props) => {
+            return selectorFunction(
+                state,
+                getFunctionProps(state, props, specification)
+            );
+        };
+
+        rootSelectorWithProps.recomputations = selectorFunction.recomputations;
+
+        return rootSelectorWithProps;
+    }
+
+    return selectorFunction;
+}
+
+function createSelectorWithLogging(
+    selectorFunction,
+    propertyName,
+    specification
+) {
+    if (specification._log === true) {
+        const selectorWithLogging = (state, props) => {
+            const result = selectorFunction(state, props);
+            console.log(`---- OUT ---- state ----`, state);
+            console.log(
+                `---- OUT ---- select-${propertyName}-from-parent ----`,
+                result
+            );
+
+            return result;
+        };
+
+        return selectorWithLogging;
+    }
+
+    return selectorFunction;
 }
 
 function resolvePropertyName(propertyName) {
@@ -205,16 +246,14 @@ function addNewInjectedProps(
 function createSelectorFunction(propertyName, specification) {
     return (state, props) => {
         const resolvedPropertyName = resolvePropertyName(propertyName);
+
         if (
             Object.hasOwn(specification, '_key') &&
             Object.hasOwn(props, specification['_key'])
         ) {
             return state[props[specification['_key']]];
         } else if (Object.hasOwn(specification, '_func')) {
-            return specification['_func'](
-                state,
-                ...getFunctionProps(state, props, specification)
-            );
+            return specification['_func'](state, ...props);
         } else if (
             Object.hasOwn(state, resolvedPropertyName) &&
             state[resolvedPropertyName] !== undefined
@@ -249,31 +288,46 @@ function recurseCreateSelectors(
                 );
             }
 
-            const selectorFunction = createSelectorFunction(
-                propertyName,
-                propertySpec
-            );
-            const newParentSelector = createParentSelector(
-                selectorFunction,
-                parentSelector
-            );
-
             const updatedAccumulatedInjectedProps = addNewInjectedProps(
                 accInjectedProps,
                 selectorSpecification,
                 propertySpec
             );
 
+            const createNewInstance = () =>
+                createSelectorWithLogging(
+                    createSelectorWithInjectedProps(
+                        createRootSelectorWithProps(
+                            createSelectorWithParentState(
+                                createMemoizedSelector(
+                                    createSelectorFunction(
+                                        propertyName,
+                                        propertySpec
+                                    )
+                                ),
+                                parentSelector
+                            ),
+                            propertySpec
+                        ),
+                        updatedAccumulatedInjectedProps
+                    ),
+                    propertyName,
+                    propertySpec
+                );
+
+            const wrappedSelector = createNewInstance();
+            wrappedSelector.newInstance = createNewInstance;
+
             const currentSpecSelectors = createSelectorsOfCurrentSpec(
                 propertyName,
                 propertySpec,
-                newParentSelector,
+                wrappedSelector,
                 updatedAccumulatedInjectedProps
             );
 
             const nestedSelectors = recurseCreateSelectors(
                 propertySpec,
-                newParentSelector,
+                wrappedSelector,
                 updatedAccumulatedInjectedProps
             );
 
